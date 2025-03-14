@@ -1,0 +1,38 @@
+YOLO Object Detection with Gradio
+This project is a YOLO-based object detection application using Gradio. It allows you to perform real-time object detection on both images and videos using various YOLOv8 models.
+
+🚀 Features
+Detect objects in images and videos using YOLOv8.
+Supports multiple YOLO models: yolov8n, yolov8s, yolov8m, yolov8l, yolov8x.
+Adjustable parameters:
+Image size – Controls the resolution for detection.
+Confidence threshold – Adjusts the minimum confidence required to display detections.
+Real-time display of annotated results.
+
+🛠️ Installation
+1. Clone the Repository
+git clone https://github.com/your-username/yolo-object-detection.git
+cd yolo-object-detection
+
+2. Create a Virtual Environment (Optional but Recommended)
+python -m venv venv
+source venv/bin/activate      # Linux/macOS
+.\venv\Scripts\activate       # Windows
+
+3. Install Dependencies
+Install the required Python packages:
+pip install -r requirements.txt
+
+requirements.txt:
+gradio
+opencv-python-headless
+ultralytics
+
+🚀 Usage
+Run the Application
+Start the Gradio app:
+
+python app.py
+Open the App
+Once the app starts, open your browser and go to:
+http://127.0.0.1:7860
