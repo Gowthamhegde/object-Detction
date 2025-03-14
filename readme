@@ -1,9 +1,6 @@
 >YOLO Object Detection with Gradio
 This project is a YOLO-based object detection application using Gradio. It allows you to perform real-time object detection on both images and videos using various YOLOv8 models.
 
-
-![App Screenshot](./Screenshot 2025-03-14 195307.png)
-
 >🚀 Features
 Detect objects in images and videos using YOLOv8.
 Supports multiple YOLO models: yolov8n, yolov8s, yolov8m, yolov8l, yolov8x.
