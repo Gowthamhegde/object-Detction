@@ -1,0 +1,3 @@
+pip install gradio
+pip instal opencv-python-headless
+pip install ultralytics
