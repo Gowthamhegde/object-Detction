@@ -11,8 +11,8 @@ Real-time display of annotated results.
 
 >🛠️ Installation
 1. Clone the Repository
-git clone https://github.com/your-username/yolo-object-detection.git
-cd yolo-object-detection
+https://github.com/Gowthamhegde/object-Detction.git
+cd app.py
 
 2. Create a Virtual Environment (Optional but Recommended)
 python -m venv venv
