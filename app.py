@@ -86,6 +86,38 @@ def run_yolo(image=None, video=None, model_name="yolov8n", image_size=640, conf_
 
     return None, None, pd.DataFrame(), "0%"
 
+def run_realtime_yolo(model_name: str, image_size: int, conf_threshold: float):
+    model_rt = YOLO(model_name)
+    cap = cv2.VideoCapture(0)  # Open default webcam
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        results = model_rt.predict(source=frame, imgsz=image_size, conf=conf_threshold)
+        annotated_frame = results[0].plot()
+
+        # Get live stats for current frame
+        class_counts = Counter()
+        for detection in results[0].boxes:
+            class_name = results[0].names[int(detection.cls)]
+            class_counts[class_name] += 1
+        stats_df = pd.DataFrame({
+            'Class': list(class_counts.keys()),
+            'Count': list(class_counts.values())
+        })
+        avg_confidence = sum(float(detection.conf) for detection in results[0].boxes) / len(results[0].boxes) if results[0].boxes else 0
+
+        # Return annotated frame and stats - adapted for Gradio streaming
+        yield (
+            annotated_frame[:, :, ::-1],  # Convert BGR to RGB
+            None,
+            stats_df,
+            f"{avg_confidence:.2%}"
+        )
+        
+    cap.release()
+
 # Define Gradio interface
 def create_app():
     with gr.Blocks() as app:
@@ -93,7 +125,7 @@ def create_app():
         
         with gr.Row():
             with gr.Column():
-                input_type = gr.Radio(["Image", "Video"], label="Select Input Type", value="Image")
+                input_type = gr.Radio(["Image", "Video", "Real-time"], label="Select Input Type", value="Image")
                 image_input = gr.Image(label="Upload Image", visible=True, type="pil")
                 video_input = gr.Video(label="Upload Video", visible=False)
                 model_name = gr.Dropdown(["yolov8n", "yolov8s", "yolov8m", "yolov8l", "yolov8x"],
@@ -112,10 +144,12 @@ def create_app():
         def update_inputs(input_type):
             if input_type == "Image":
                 return gr.update(visible=True), gr.update(visible=False), gr.update(visible=True), gr.update(visible=False)
-            else:
+            elif input_type == "Video":
                 return gr.update(visible=False), gr.update(visible=True), gr.update(visible=False), gr.update(visible=True)
+            else:  # Real-time
+                return gr.update(visible=False), gr.update(visible=False), gr.update(visible=True), gr.update(visible=False)
         
-        input_type.change(fn=update_inputs, inputs=[input_type], 
+        input_type.change(fn=update_inputs, inputs=[input_type],
                           outputs=[image_input, video_input, output_image, output_video])
         
         # Run inference
@@ -124,9 +158,11 @@ def create_app():
                 return run_yolo(image=image, model_name=model_name, image_size=image_size, conf_threshold=conf_threshold)
             elif input_type == "Video" and video is not None:
                 return run_yolo(video=video, model_name=model_name, image_size=image_size, conf_threshold=conf_threshold)
+            elif input_type == "Real-time":  # Real-time detection
+                return run_realtime_yolo(model_name, image_size, conf_threshold)
             return None, None, pd.DataFrame(), "0%"
         
-        detect_button.click(detect, 
+        detect_button.click(detect,
                             inputs=[input_type, image_input, video_input, model_name, image_size, conf_threshold],
                             outputs=[output_image, output_video, stats_df, avg_confidence])
     
@@ -134,5 +170,38 @@ def create_app():
 
 # Launch the app
 if __name__ == "__main__":
+    def run_realtime_yolo_stream(model_name, image_size, conf_threshold):
+        model_rt = YOLO(model_name)
+        cap = cv2.VideoCapture(0)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            results = model_rt.predict(source=frame, imgsz=image_size, conf=conf_threshold)
+            annotated_frame = results[0].plot()
+            class_counts = Counter()
+            for detection in results[0].boxes:
+                class_name = results[0].names[int(detection.cls)]
+                class_counts[class_name] += 1
+            stats_df = pd.DataFrame({
+                'Class': list(class_counts.keys()),
+                'Count': list(class_counts.values())
+            })
+            avg_confidence = sum(float(detection.conf) for detection in results[0].boxes) / len(results[0].boxes) if results[0].boxes else 0
+            yield annotated_frame[:, :, ::-1], None, stats_df, f"{avg_confidence:.2%}"
+        cap.release()
+
     app = create_app()
+    
+    # Override detect button for real-time streaming
+    def detect_stream(input_type, image, video, model_name, image_size, conf_threshold):
+        if input_type == "Image" and image is not None:
+            return run_yolo(image=image, model_name=model_name, image_size=image_size, conf_threshold=conf_threshold)
+        elif input_type == "Video" and video is not None:
+            return run_yolo(video=video, model_name=model_name, image_size=image_size, conf_threshold=conf_threshold)
+        elif input_type == "Real-time":
+            return run_realtime_yolo_stream(model_name, image_size, conf_threshold)
+        return None, None, pd.DataFrame(), "0%"
+    
+    app.load(detect_stream)
     app.launch()
